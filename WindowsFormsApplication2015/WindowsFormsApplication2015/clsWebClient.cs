@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -17,16 +13,15 @@ namespace WindowsFormsApplication2015
 
 
         private static WebClient webClient = null;
-
         private Stopwatch swTime = new Stopwatch();
+        private string m_strLocalPath = "";
+
 
         public string clsWebClient_Status { get; set; }
         public string clsWebClient_DownloadSpeed { get; set; }
         public int clsWebClient_ProgressPercentage { get; set; }
 
-
-        private string m_strLocalPath = "";
-
+        
 
         public async void GetWebClient(string strUrl)
         {
@@ -37,14 +32,16 @@ namespace WindowsFormsApplication2015
 
             try
             {
-                webClient = new WebClient();
-                webClient.Headers.Set("User-Agent", "Test");
-                webClient.DownloadFileCompleted += WebClient_DownloadFileCompleted;
-                webClient.DownloadProgressChanged += WebClient_DownloadProgressChanged;
-                
-                swTime.Start();
+                using (webClient = new WebClient())
+                {
+                    webClient.Headers.Set("User-Agent", "Test");
+                    webClient.DownloadFileCompleted += WebClient_DownloadFileCompleted;
+                    webClient.DownloadProgressChanged += WebClient_DownloadProgressChanged;
 
-                await webClient.DownloadFileTaskAsync(strUrl, m_strLocalPath);
+                    swTime.Start();
+
+                    await webClient.DownloadFileTaskAsync(strUrl, m_strLocalPath);
+                }
             }
             catch (Exception e)
             {
@@ -71,18 +68,14 @@ namespace WindowsFormsApplication2015
             WebClientStatus();
 
             swTime.Reset();
-
-            webClient.CancelAsync();
-            webClient.Dispose();
         }
 
         private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            //string strPercent = e.ProgressPercentage.ToString() + "%";
-            //string strDownloaded = string.Format("{0} MB's / {1} MB's", (e.BytesReceived / 1024d / 1024d).ToString("0.00"),  (e.TotalBytesToReceive / 1024d / 1024d).ToString("0.00"));
-            //Console.WriteLine(e.ProgressPercentage.ToString());
+            string strSpeedMB = $"{(e.BytesReceived / 1024d / 1024d / swTime.Elapsed.TotalSeconds):0.00} MB/s";
+            string strSpeedKB = $"{(e.BytesReceived / 1024d / swTime.Elapsed.TotalSeconds):0.00} KB/s";
 
-            string strSpeed = string.Format("{0} kb/s", (e.BytesReceived / 1024d / swTime.Elapsed.TotalSeconds).ToString("0.00"));
+            string strSpeed = $"{strSpeedMB} / {strSpeedKB}"; 
             this.clsWebClient_DownloadSpeed = strSpeed;
             this.clsWebClient_ProgressPercentage = e.ProgressPercentage;
 
@@ -105,8 +98,7 @@ namespace WindowsFormsApplication2015
         {
             string strfileName = sFilePath.Substring(0, sFilePath.LastIndexOf("\\"));
             return strfileName;
-        }
-          
+        }          
     }
     
 }
